@@ -25,7 +25,7 @@ def validate_input_type(input_val, expected_t):
     try:
         valid_val = expected_t(input_val)
     except ValueError:
-        validate_input_type(input("the type of the input value is not right, please try again"),expected_t)
+        valid_val = validate_input_type(input("the type of the input value is not right, please try again:"), expected_t)
     return valid_val
 
 
@@ -44,7 +44,7 @@ def __main__():
     # output to a excel file
     meal_to_file()
 
-    print(daily_calories)
+    print()
 
 
 '''
@@ -82,7 +82,42 @@ ask the user for the desired diet type
 
 
 def collect_diet_type():
-    pass
+    # display diet type
+    display_diet_type()
+
+    # get and validate diet type
+    global diet_type
+    diet_type = get_validate_diet_type()
+
+
+
+
+'''
+display the supported diet types
+'''
+
+
+def display_diet_type():
+    print("please choose one diet type to use:\n" + "\t"*6 + "CARB\t\tPROTEIN\t\tFAT")
+    i = 0
+    for key in DIET_TYPE.keys():
+        print(str(i) + "\t" + key, end="")
+        for v in DIET_TYPE[key]:
+            print("\t"*3 + str(v), end="")
+        print()
+        i += 1
+
+
+'''
+get and validate diet type
+'''
+
+
+def get_validate_diet_type():
+    selection = int(input("please enter a valid choice number: "))
+    if selection < 0 or selection >= len(DIET_TYPE):
+        selection = get_validate_diet_type()
+    return selection
 
 
 '''
@@ -113,4 +148,12 @@ def meal_to_file():
 
 
 # run the project
-__main__()
+# __main__()
+
+
+
+
+'''
+UNIT TESTS!
+'''
+
