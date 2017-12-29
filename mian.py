@@ -12,10 +12,13 @@ DIET_TYPE = {"HIGH CARB": (60, 25, 15),
              "KETO": (10, 15, 75)}
 
 DAILY_FIBRE = 30
+DAILY_PROTEIN_UPPER_L = 205
+DAILY_PROTEIN_LOWER_L = 140
+CARB_PERCENTAGE_UPPER_L = 60
 
 # global vars
 daily_calories = 0
-diet_type = -1
+diet_type = (0, 0, 0)
 daily_carb = 0
 daily_fat = 0
 daily_protein = 0
@@ -82,12 +85,16 @@ def collect_diet_type():
     """
     ask the user for the desired diet type
     """
+
+    global diet_type
     # display diet type
     display_diet_type()
 
-    # get and validate diet type
-    global diet_type
-    diet_type = get_validate_diet_type()
+    # get user input of calories breakdown or diet type choice and validate
+    validate_cpf_percentage = collect_diet_type_input()
+
+    # calculate the breakdowns and adjust, then assign to global vars
+    diet_type = calculate_adjust_diet_type(validate_cpf_percentage)
 
 
 def display_diet_type():
@@ -104,14 +111,71 @@ def display_diet_type():
         i += 1
 
 
-def get_validate_diet_type():
+def collect_diet_type_input():
     """
-    get and validate diet type
+    get and validate diet type input
     """
-    selection = int(input("please enter a valid choice number: "))
-    if selection < 0 or selection >= len(DIET_TYPE):
-        selection = get_validate_diet_type()
-    return selection
+    diet_type_input = input(
+        "please enter a valid choice number or three numbers that add up to 100, spilt in comma: \n")
+    if "," in diet_type_input:
+        return validate_customized_diet_type(diet_type_input)
+    else:
+        return validate_diet_type_selection(diet_type_input)
+
+
+def validate_customized_diet_type(diet_type_input):
+    """
+    validate and parse user input if the user is intended to use customized diet breakdown
+    :param diet_type_input:
+    :return:
+    """
+    cpf_input_tuple = tuple(diet_type_input.split(","))
+    try:
+        cpf_input_num_tuple = tuple(map(float, cpf_input_tuple))
+    except ValueError:
+        cpf_input_num_tuple = collect_diet_type_input()
+
+    if not sum(cpf_input_num_tuple) == 100:
+        cpf_input_num_tuple = collect_diet_type_input()
+
+    return cpf_input_num_tuple
+
+
+def validate_diet_type_selection(diet_type_input):
+    """
+    validate and parse user input if the user is intended to use pre-defined diet breakdown
+    :param diet_type_input:
+    :return:
+    """
+    try:
+        selection = int(diet_type_input)
+        if selection < 0 or selection >= len(DIET_TYPE):
+            return collect_diet_type_input()
+        else:
+            return list(DIET_TYPE.values())[selection]
+    except ValueError:
+        return collect_diet_type_input()
+
+
+def calculate_adjust_diet_type(validate_cpf_percentage):
+    """
+    according to the diet breakdown calculate the values of different nutrition intake per day then adjust them
+    :param validate_cpf_percentage:
+    :return:
+    """
+    cpf_values = calculate_diet_breakdown(validate_cpf_percentage)
+
+    adjusted_cpf_values = adjust_diet_breakdown(cpf_values)
+
+    return adjusted_cpf_values
+
+
+def calculate_diet_breakdown(validate_cpf_percentage):
+    return tuple(map(lambda x: x/100*daily_calories, validate_cpf_percentage))
+
+
+def adjust_diet_breakdown(cpf_values):
+    pass
 
 
 def collect_ingredients():
@@ -159,6 +223,7 @@ def get_validate_available_ingredient():
             available_ingredients_list = get_validate_available_ingredient()
     return available_ingredients_list
 
+
 def create_meals():
     """
     calculate the different ingredients needed
@@ -174,8 +239,7 @@ def meal_to_file():
 
 
 # run the project
-__main__()
-
+# __main__()
 
 '''
 UNIT TESTS!
