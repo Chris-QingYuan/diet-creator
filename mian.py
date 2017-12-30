@@ -40,7 +40,7 @@ def validate_input_type(input_val, expected_t):
     return valid_val
 
 
-def __main__():
+def main():
     """
     main function
     """
@@ -53,7 +53,8 @@ def __main__():
     # output to a excel file
     meal_to_file()
 
-    print(DATAFRAME)
+    # test
+    print(available_ingredients)
 
 
 def collect_req():
@@ -68,6 +69,9 @@ def collect_req():
 
     # check the ingredients available right now
     collect_ingredients()
+
+    # mark the completion of info collecting phase
+    print("INFORMATION COLLECTION: \nOK!")
 
 
 def collect_daily_cal():
@@ -135,7 +139,7 @@ def validate_customized_diet_type(diet_type_input):
     except ValueError:
         cpf_input_num_tuple = collect_diet_type_input()
 
-    if not sum(cpf_input_num_tuple) == 100:
+    if (not sum(cpf_input_num_tuple) == 100) or cpf_input_num_tuple[0] > CARB_PERCENTAGE_UPPER_L:
         cpf_input_num_tuple = collect_diet_type_input()
 
     return cpf_input_num_tuple
@@ -171,11 +175,44 @@ def calculate_adjust_diet_type(validate_cpf_percentage):
 
 
 def calculate_diet_breakdown(validate_cpf_percentage):
-    return tuple(map(lambda x: x/100*daily_calories, validate_cpf_percentage))
+    return tuple(map(lambda x: x / 100 * daily_calories, validate_cpf_percentage))
 
 
 def adjust_diet_breakdown(cpf_values):
-    pass
+    """
+    check if the volumes of the three nutrients are in bound, if not, adjust them
+    :param cpf_values:
+    :return:
+    """
+    if cpf_values[1] < DAILY_PROTEIN_LOWER_L * 4:
+        return adjust_too_low_protein(cpf_values)
+    elif cpf_values[1] > DAILY_PROTEIN_UPPER_L * 4:
+        return adjust_too_high_protein(cpf_values)
+    else:
+        return cpf_values
+
+
+def adjust_too_low_protein(cpf_values):
+    adjusted_cpf_values = [0, 0, 0]
+    adjusted_cpf_values[1] = DAILY_PROTEIN_LOWER_L * 4
+    adjusted_cpf_values[0] = cpf_values[0] * (
+            1 - (DAILY_PROTEIN_LOWER_L * 4 - cpf_values[1]) / (cpf_values[0] + cpf_values[2]))
+    adjusted_cpf_values[2] = cpf_values[2] * (
+            1 - (DAILY_PROTEIN_LOWER_L * 4 - cpf_values[1]) / (cpf_values[0] + cpf_values[2]))
+    return tuple(adjusted_cpf_values)
+
+
+def adjust_too_high_protein(cpf_values):
+    adjusted_cpf_values = [0, 0, 0]
+    adjusted_cpf_values[1] = DAILY_PROTEIN_UPPER_L * 4
+    adjusted_cpf_values[0] = cpf_values[0] * (
+            1 + (cpf_values[1] - DAILY_PROTEIN_UPPER_L * 4) / (cpf_values[0] + cpf_values[2]))
+    adjusted_cpf_values[2] = cpf_values[2] * (
+            1 + (cpf_values[1] - DAILY_PROTEIN_UPPER_L * 4) / (cpf_values[0] + cpf_values[2]))
+    if adjusted_cpf_values[0] / daily_calories > (CARB_PERCENTAGE_UPPER_L / 100):
+        adjusted_cpf_values[2] += adjusted_cpf_values[0] - daily_calories * CARB_PERCENTAGE_UPPER_L / 100
+        adjusted_cpf_values[0] = daily_calories * CARB_PERCENTAGE_UPPER_L / 100
+    return tuple(adjusted_cpf_values)
 
 
 def collect_ingredients():
@@ -228,6 +265,7 @@ def create_meals():
     """
     calculate the different ingredients needed
     """
+    # TODO
     pass
 
 
@@ -235,11 +273,14 @@ def meal_to_file():
     """
     write the created meals to a xls file for later check and use
     """
+    # TODO
     pass
 
 
 # run the project
-# __main__()
+
+if __name__ == "__main__":
+    main()
 
 '''
 UNIT TESTS!
