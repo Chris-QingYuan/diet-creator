@@ -11,10 +11,18 @@ DIET_TYPE = {"HIGH CARB": (60, 25, 15),
              "LOW CARB": (25, 45, 30),
              "KETO": (10, 15, 75)}
 
+PROTEIN_POWDER_CHOICE = {0: "NO",
+                         1: "PRE-WORKOUT ONLY",
+                         2: "POST-WORKOUT ONLY",
+                         3: "BOTH PRE- AND POST-WORKOUT"}
+
 DAILY_FIBRE = 30
 DAILY_PROTEIN_UPPER_L = 205
 DAILY_PROTEIN_LOWER_L = 140
 CARB_PERCENTAGE_UPPER_L = 60
+PROTEIN_POWDER_VOLUME = 30
+POST_WORKOUT_HONEY = 25
+HIGH_CARB_LINE = 2000
 
 # global vars
 daily_calories = 0
@@ -25,6 +33,11 @@ daily_protein = 0
 available_ingredients = []
 supported_protein_num = 0
 supported_proteins = list(DATAFRAME[DATAFRAME.category == 1].name)
+protein_powder_choice = -1
+juice_needed = -1
+carb_per_meal = 0
+protein_per_meal = 0
+fat_pre_meal = 0
 
 '''
 UTILITY FUNCTIONS
@@ -70,6 +83,9 @@ def collect_req():
     # check the ingredients available right now
     collect_ingredients()
 
+    # check if there is any special requirements, e.g. protein powder, juice or snack
+    collect_special_req()
+
     # mark the completion of info collecting phase
     print("INFORMATION COLLECTION: \nOK!")
 
@@ -90,7 +106,7 @@ def collect_diet_type():
     ask the user for the desired diet type
     """
 
-    global diet_type
+    global diet_type, daily_carb, daily_protein, daily_fat
     # display diet type
     display_diet_type()
 
@@ -99,6 +115,7 @@ def collect_diet_type():
 
     # calculate the breakdowns and adjust, then assign to global vars
     diet_type = calculate_adjust_diet_type(validate_cpf_percentage)
+    (daily_carb, daily_protein, daily_fat) = diet_type
 
 
 def display_diet_type():
@@ -261,6 +278,54 @@ def get_validate_available_ingredient():
     return available_ingredients_list
 
 
+def collect_special_req():
+    """
+    check if there is any special requirements, e.g. protein powder, juice or snack
+    :return:
+    """
+    # protein powder
+    global protein_powder_choice
+    protein_powder_choice = collect_protein_powder_req()
+
+    # juice
+    global juice_needed
+    juice_needed = collect_juice_req()
+
+    # snack
+    #
+
+
+def collect_protein_powder_req():
+    print("please choose the volume of protein powder you want")
+    for k, v in PROTEIN_POWDER_CHOICE.items():
+        print(str(k) + "\t" + v)
+    protein_req = input()
+    try:
+        protein_req_int = int(protein_req)
+    except ValueError:
+        protein_req_int = collect_protein_powder_req()
+
+    if protein_req_int < 0 or protein_req_int >= len(PROTEIN_POWDER_CHOICE):
+        protein_req_int = collect_protein_powder_req()
+
+    return protein_req_int
+
+
+def collect_juice_req():
+    # if the calories from carbohydrate per day is too high, sak the user if they want to add juice into their meals
+    if daily_carb > HIGH_CARB_LINE:
+        juice_req = input(
+            "the calories come from carbs is relatively high, which is " + str(
+                daily_carb) + "[kCal], would you like to add a cup of juice to each of your meals?" +
+            "\nNO: 0\nYES: any key slse")
+        try:
+            if int(juice_req) == 0:
+                return 0
+        except ValueError:
+            return 1
+    return 1
+
+
 def create_meals():
     """
     calculate the different ingredients needed
@@ -279,9 +344,10 @@ def meal_to_file():
 
 # run the project
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#    main()
 
 '''
 UNIT TESTS!
 '''
+print(collect_protein_powder_req())
