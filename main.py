@@ -20,9 +20,10 @@ DAILY_FIBRE = 30
 DAILY_PROTEIN_UPPER_L = 205
 DAILY_PROTEIN_LOWER_L = 140
 CARB_PERCENTAGE_UPPER_L = 60
-PROTEIN_POWDER_VOLUME = 30
+PROTEIN_POWDER_SERVING = 30
 POST_WORKOUT_HONEY = 25
 HIGH_CARB_LINE = 2000
+CUP_VOLUME = 300
 
 # global vars
 daily_calories = 0
@@ -38,6 +39,15 @@ juice_needed = -1
 carb_per_meal = 0
 protein_per_meal = 0
 fat_pre_meal = 0
+
+breakfast_menu = {}
+meal_menu = {}
+breakfast_carb = 0
+breakfast_protein = 0
+breakfast_fat = 0
+meal_carb = 0
+meal_protein = 0
+meal_fat = 0
 
 '''
 UTILITY FUNCTIONS
@@ -328,9 +338,39 @@ def collect_juice_req():
 
 def create_meals():
     """
-    calculate the different ingredients needed
+    calculate the different ingredients needed to form breakfast and meals menu
     """
+    # calculate nutrition per meal
+    calculate_nutrient_per_meal()
+
+    # create breakfast menu
+    create_breakfast()
+
+    # create meal menu
+    create_lunch_and_supper()
+
+
+def calculate_nutrient_per_meal():
+    # calculate nutrient from protein powder
+    protein_powder_nutrient = calculate_protein_powder_nutrient()
+
+    # calculate nutrient per meal after subtracting protein powder's
+
+
+def calculate_protein_powder_nutrient():
     # TODO
+    pass
+
+
+def init_nutrient_for_meals(protein_powder_nutrient):
+    pass
+
+
+def create_breakfast():
+    pass
+
+
+def create_lunch_and_supper():
     pass
 
 
@@ -344,10 +384,5 @@ def meal_to_file():
 
 # run the project
 
-# if __name__ == "__main__":
-#    main()
-
-'''
-UNIT TESTS!
-'''
-print(collect_protein_powder_req())
+if __name__ == "__main__":
+    main()
