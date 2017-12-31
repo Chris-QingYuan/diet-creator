@@ -358,8 +358,12 @@ def calculate_nutrient_per_meal():
 
 
 def calculate_protein_powder_nutrient():
+    protein_powder_data = DATAFRAME[DATAFRAME.name == "protein powder"]
+    (p_portuion, p_unit, p_carb, p_protein, p_fat) = (
+        protein_powder_data.standard_portion, protein_powder_data.unit, protein_powder_data.carb,
+        protein_powder_data.protein, protein_powder_data.protein.total_fat)
+
     # TODO
-    pass
 
 
 def init_nutrient_for_meals(protein_powder_nutrient):

@@ -1,4 +1,4 @@
-name,standard portion,unit,calories,total fat,sat fat,carb,fibre,protein,morning,meal,snack,category
+name,standard_portion,unit,calories,total_fat,sat_fat,carb,fibre,protein,morning,meal,snack,category
 egg,1,1,78,5,1.6,0.6,0,6,1,1,0,1
 milk 2%,100,g,50,2,1.3,4.8,0,3.3,1,0,0,-1
 chicken sausage,1,1,91,7,2,2,0,5,1,0,0,-1
