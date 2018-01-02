@@ -1,8 +1,13 @@
 # imports
 import pandas as pd
+import Ingredient as ingr
+import utilities as util
 
 # read in data from data.csv into a dataframe
 DATAFRAME = pd.read_csv("data/data.csv")
+
+# read in customized parameters
+paras = util.text_to_dictionary(open("paras").read())
 
 # constants
 DIET_TYPE = {"HIGH CARB": (60, 25, 15),
@@ -16,51 +21,42 @@ PROTEIN_POWDER_CHOICE = {0: "NO",
                          2: "POST-WORKOUT ONLY",
                          3: "BOTH PRE- AND POST-WORKOUT"}
 
-DAILY_FIBRE = 30
-DAILY_PROTEIN_UPPER_L = 205
-DAILY_PROTEIN_LOWER_L = 140
-CARB_PERCENTAGE_UPPER_L = 60
-PROTEIN_POWDER_SERVING = 30
-POST_WORKOUT_HONEY = 25
-HIGH_CARB_LINE = 2000
-CUP_VOLUME = 300
+DAILY_FIBRE = int(paras['DAILY_FIBRE'])
+DAILY_PROTEIN_UPPER_L = int(paras['DAILY_PROTEIN_UPPER_L'])
+DAILY_PROTEIN_LOWER_L = int(paras['DAILY_PROTEIN_LOWER_L'])
+CARB_PERCENTAGE_UPPER_L = int(paras['CARB_PERCENTAGE_UPPER_L'])
+PROTEIN_POWDER_SERVING = int(paras['PROTEIN_POWDER_SERVING'])
+POST_WORKOUT_HONEY = int(paras['POST_WORKOUT_HONEY'])
+HIGH_CARB_LINE = int(paras['HIGH_CARB_LINE'])
+CUP_VOLUME = int(paras['CUP_VOLUME'])
 
 # global vars
 daily_calories = 0
-diet_type = (0, 0, 0)
-daily_carb = 0
-daily_fat = 0
-daily_protein = 0
+diet_type = (0, 0, 0)  # kCal,kCal,kCal
+daily_carb = 0.0  # g
+daily_protein = 0.0  # g
+daily_fat = 0.0  # g
 available_ingredients = []
 supported_protein_num = 0
 supported_proteins = list(DATAFRAME[DATAFRAME.category == 1].name)
 protein_powder_choice = -1
 juice_needed = -1
-carb_per_meal = 0
-protein_per_meal = 0
-fat_pre_meal = 0
+carb_per_meal = 0  # g
+protein_per_meal = 0  # g
+fat_pre_meal = 0  # g
 
 breakfast_menu = {}
 meal_menu = {}
-breakfast_carb = 0
-breakfast_protein = 0
-breakfast_fat = 0
-meal_carb = 0
-meal_protein = 0
-meal_fat = 0
+breakfast_carb = 0  # g
+breakfast_protein = 0  # g
+breakfast_fat = 0  # g
+meal_carb = 0  # g
+meal_protein = 0  # g
+meal_fat = 0  # g
 
 '''
-UTILITY FUNCTIONS
+MAIN BODY
 '''
-
-
-def validate_input_type(input_val, expected_t):
-    try:
-        valid_val = expected_t(input_val)
-    except ValueError:
-        valid_val = validate_input_type(input("the type of the input value is not right, please try again:"),
-                                        expected_t)
-    return valid_val
 
 
 def main():
@@ -108,7 +104,7 @@ def collect_daily_cal():
     input_cal = input("please tell me how much calories you want to take per day: ")
     # validation
     global daily_calories
-    daily_calories = validate_input_type(input_cal, int)
+    daily_calories = util.validate_input_type(input_cal, int)
 
 
 def collect_diet_type():
@@ -125,7 +121,9 @@ def collect_diet_type():
 
     # calculate the breakdowns and adjust, then assign to global vars
     diet_type = calculate_adjust_diet_type(validate_cpf_percentage)
-    (daily_carb, daily_protein, daily_fat) = diet_type
+    daily_carb = diet_type[0] / 4
+    daily_protein = diet_type[1] / 4
+    daily_fat = diet_type[2] / 9
 
 
 def display_diet_type():
@@ -327,7 +325,7 @@ def collect_juice_req():
         juice_req = input(
             "the calories come from carbs is relatively high, which is " + str(
                 daily_carb) + "[kCal], would you like to add a cup of juice to each of your meals?" +
-            "\nNO: 0\nYES: any key slse")
+            "\nNO: 0\nYES: any key else\n")
         try:
             if int(juice_req) == 0:
                 return 0
@@ -355,19 +353,47 @@ def calculate_nutrient_per_meal():
     protein_powder_nutrient = calculate_protein_powder_nutrient()
 
     # calculate nutrient per meal after subtracting protein powder's
+    subtract_protein_powder_nutrient_from_meals(protein_powder_nutrient)
 
 
 def calculate_protein_powder_nutrient():
-    protein_powder_data = DATAFRAME[DATAFRAME.name == "protein powder"]
-    (p_portuion, p_unit, p_carb, p_protein, p_fat) = (
-        protein_powder_data.standard_portion, protein_powder_data.unit, protein_powder_data.carb,
-        protein_powder_data.protein, protein_powder_data.protein.total_fat)
+    protein_powder = ingr.Ingredient(DATAFRAME[DATAFRAME.name == "protein powder"])
+    honey = ingr.Ingredient(DATAFRAME[DATAFRAME.name == "honey"])
 
-    # TODO
+    pre_nutrient, post_nutrient = calculate_pre_and_post_workout_nutrient(protein_powder, honey)
+
+    return calculate_protein_powder_nutrient_as_chosen(pre_nutrient, post_nutrient, protein_powder_choice)
 
 
-def init_nutrient_for_meals(protein_powder_nutrient):
-    pass
+def calculate_pre_and_post_workout_nutrient(protein_powder, honey):
+    (p_portion, p_unit, p_carb, p_protein, p_fat) = protein_powder.get_portion_and_nutrient()
+    (h_portion, h_unit, h_carb, h_protein, h_fat) = honey.get_portion_and_nutrient()
+
+    pre_nutrient = [e * PROTEIN_POWDER_SERVING / p_portion for e in [p_carb, p_protein, p_fat]]
+    honey_nutrient = [e * POST_WORKOUT_HONEY / h_portion for e in [h_carb, h_protein, h_fat]]
+    post_nutrient = [sum(e) for e in zip(pre_nutrient, honey_nutrient)]
+
+    return pre_nutrient, post_nutrient
+
+
+def calculate_protein_powder_nutrient_as_chosen(pre_nutrient, post_nutrient, protein_powder_choice):
+    if protein_powder_choice == 0:
+        return [0, 0, 0]
+    elif protein_powder_choice == 1:
+        return pre_nutrient
+    elif protein_powder_choice == 2:
+        return post_nutrient
+    elif protein_powder_choice == 3:
+        return [sum(x) for x in zip(pre_nutrient, post_nutrient)]
+
+    return [0, 0, 0]
+
+
+def subtract_protein_powder_nutrient_from_meals(protein_powder_nutrient):
+    global carb_per_meal, protein_per_meal, fat_pre_meal
+    carb_per_meal = (daily_carb - protein_powder_nutrient[0]) / 3
+    protein_per_meal = (daily_carb - protein_powder_nutrient[1]) / 3
+    fat_pre_meal = (daily_carb - protein_powder_nutrient[2]) / 3
 
 
 def create_breakfast():

@@ -1,8 +1,12 @@
 import os
-os.chdir("..")
 
+os.chdir("..")
 
 import main as m
 
-print(m.DATAFRAME.standard_portion)
+m.main()
+print(m.diet_type)
+print(m.daily_carb)
+print(m.daily_protein)
+print(m.daily_fat)
 
