@@ -2,73 +2,74 @@ import pandas as pd
 
 
 class Ingredient:
-    __name = ""
-    __standard_portion = 0
-    __unit = ""
-    __calories = 0
-    __total_fat = 0
-    __sat_fat = 0
-    __carb = 0
-    __fibre = 0
-    __protein = 0
-    __morning = 0
-    __meal = 0
-    __snack = 0
-    __category = 0
+    __name: str = ""
+    __standard_portion: float = 0.0
+    __unit: str = ""
+    __calories: float = 0.0
+    __total_fat: float = 0.0
+    __sat_fat: float = 0.0
+    __carb: float = 0.0
+    __fibre: float = 0.0
+    __protein: float = 0.0
+    __morning: int = 0
+    __meal: int = 0
+    __snack: int = 0
+    __category: int = 0
 
     def __init__(self, dataframe_record):
-        self.__name = dataframe_record.name
-        self.__standard_portion = dataframe_record.standard_portion
-        self.__unit = dataframe_record.unit
-        self.__calories = dataframe_record.calories
-        self.__total_fat = dataframe_record.total_fat
-        self.__sat_fat = dataframe_record.sat_fat
-        self.__carb = dataframe_record.carb
-        self.__fibre = dataframe_record.fibre
-        self.__protein = dataframe_record.protein
-        self.__morning = dataframe_record.morning
-        self.__meal = dataframe_record.meal
-        self.__snack = dataframe_record.snack
-        self.__category = dataframe_record.category
+        self.__name = str(dataframe_record.values[0][0])
+        self.__standard_portion = float(dataframe_record.values[0][1])
+        self.__unit = str(dataframe_record.values[0][2])
+        self.__calories = float(dataframe_record.values[0][3])
+        self.__total_fat = float(dataframe_record.values[0][4])
+        self.__sat_fat = float(dataframe_record.values[0][5])
+        self.__carb = float(dataframe_record.values[0][6])
+        self.__fibre = float(dataframe_record.values[0][7])
+        self.__protein = float(dataframe_record.values[0][8])
+        self.__morning = int(dataframe_record.values[0][9])
+        self.__meal = int(dataframe_record.values[0][10])
+        self.__snack = int(dataframe_record.values[0][11])
+        self.__category = int(dataframe_record.values[0][12])
 
     def get_portion_and_nutrient(self):
-        return self.__standard_portion, self.__unit, self.__carb, self.__protein, self.__total_fat
+        return float(self.__standard_portion), str(self.__unit), float(self.__carb), float(self.__protein), float(
+            self.__total_fat)
 
     def get_name(self):
         return self.__name
 
     def get_standard_portion(self):
-        return self.__standard_portion
+        return float(self.__standard_portion)
 
     def get_unit(self):
-        return self.__unit
+        return str(self.__unit)
 
     def get_calories(self):
-        return self.__calories
+        return float(self.__calories)
 
     def get_total_fat(self):
-        return self.__total_fat
+        return float(self.__total_fat)
 
     def get_sat_fat(self):
-        return self.__sat_fat
+        return float(self.__sat_fat)
 
     def get_carb(self):
-        return self.__carb
+        return float(self.__carb)
 
     def get_fibre(self):
-        return self.__fibre
+        return float(self.__fibre)
 
     def get_protein(self):
-        return self.__protein
+        return float(self.__protein)
 
     def get_morning(self):
-        return self.__morning
+        return int(self.__morning)
 
     def get_meal(self):
-        return self.__meal
+        return int(self.__meal)
 
     def get_snack(self):
-        return self.__snack
+        return int(self.__snack)
 
     def get_category(self):
-        return self.__category
+        return int(self.__category)

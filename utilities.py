@@ -19,3 +19,4 @@ def text_to_dictionary(text: str):
         kvpair = pair.split(":")
         dictionary[kvpair[0].strip()] = kvpair[1].strip()
     return dictionary
+

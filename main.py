@@ -2,6 +2,8 @@
 import pandas as pd
 import Ingredient as ingr
 import utilities as util
+import random
+import numpy as np
 
 # read in data from data.csv into a dataframe
 DATAFRAME = pd.read_csv("data/data.csv")
@@ -26,9 +28,11 @@ DAILY_PROTEIN_UPPER_L = int(paras['DAILY_PROTEIN_UPPER_L'])
 DAILY_PROTEIN_LOWER_L = int(paras['DAILY_PROTEIN_LOWER_L'])
 CARB_PERCENTAGE_UPPER_L = int(paras['CARB_PERCENTAGE_UPPER_L'])
 PROTEIN_POWDER_SERVING = int(paras['PROTEIN_POWDER_SERVING'])
+STAPLE_FOOD_UPPER_L = int(paras['STAPLE_FOOD_UPPER_L'])
 POST_WORKOUT_HONEY = int(paras['POST_WORKOUT_HONEY'])
 HIGH_CARB_LINE = int(paras['HIGH_CARB_LINE'])
 CUP_VOLUME = int(paras['CUP_VOLUME'])
+SWEETENER_PER_MEAL_UPPER_L = int(paras['SWEETENER_PER_MEAL_UPPER_L'])
 
 # global vars
 daily_calories = 0
@@ -37,13 +41,21 @@ daily_carb = 0.0  # g
 daily_protein = 0.0  # g
 daily_fat = 0.0  # g
 available_ingredients = []
-supported_protein_num = 0
-supported_proteins = list(DATAFRAME[DATAFRAME.category == 1].name)
+supported_protein_names = list(DATAFRAME[DATAFRAME.category == 1].name)
+supported_protein_num = len(supported_protein_names)
+supported_staple_names = list(DATAFRAME[DATAFRAME.category == 2].name)
+supported_staple_num = len(supported_staple_names)
+supported_sweetener_names = list(DATAFRAME[DATAFRAME.category == 3].name)
+supported_sweetener_num = len(supported_sweetener_names)
+supported_nut_names = list(DATAFRAME[DATAFRAME.category == 4].name)
+supported_nut_num = len(supported_nut_names)
+supported_vegetable_names = list(DATAFRAME[DATAFRAME.category == 5].name)
+supported_vegetable_num = len(supported_vegetable_names)
 protein_powder_choice = -1
 juice_needed = -1
 carb_per_meal = 0  # g
 protein_per_meal = 0  # g
-fat_pre_meal = 0  # g
+fat_per_meal = 0  # g
 
 breakfast_menu = {}
 meal_menu = {}
@@ -53,6 +65,15 @@ breakfast_fat = 0  # g
 meal_carb = 0  # g
 meal_protein = 0  # g
 meal_fat = 0  # g
+
+"""
+UTILITY FUNCTIONS
+"""
+
+
+def get_ingredient_by_name(ingre_name):
+    return ingr.Ingredient(DATAFRAME[DATAFRAME.name == ingre_name])
+
 
 '''
 MAIN BODY
@@ -71,9 +92,6 @@ def main():
 
     # output to a excel file
     meal_to_file()
-
-    # test
-    print(available_ingredients)
 
 
 def collect_req():
@@ -258,12 +276,9 @@ def display_supported_protein():
     read the list of proteins from the DATAFRAME and display them
     """
     # get the list of supported proteins
-
-    global supported_protein_num
-    supported_protein_num = len(supported_proteins)
     # print in rows with index
     for i in range(supported_protein_num):
-        print(str(i) + "\t" + supported_proteins[i])
+        print(str(i) + "\t" + supported_protein_names[i])
 
 
 def get_validate_available_ingredient():
@@ -321,7 +336,7 @@ def collect_protein_powder_req():
 
 def collect_juice_req():
     # if the calories from carbohydrate per day is too high, sak the user if they want to add juice into their meals
-    if daily_carb > HIGH_CARB_LINE:
+    if daily_carb > HIGH_CARB_LINE / 4:
         juice_req = input(
             "the calories come from carbs is relatively high, which is " + str(
                 daily_carb) + "[kCal], would you like to add a cup of juice to each of your meals?" +
@@ -348,6 +363,16 @@ def create_meals():
     create_lunch_and_supper()
 
 
+def subtract_orange_juice_nutrient_from_meals():
+    if juice_needed == 1:
+        orange_juice = get_ingredient_by_name('orange juice')
+        factor = CUP_VOLUME / orange_juice.get_standard_portion()
+        global carb_per_meal, fat_per_meal, protein_per_meal
+        carb_per_meal -= orange_juice.get_carb() * factor
+        protein_per_meal -= orange_juice.get_protein() * factor
+        fat_per_meal -= orange_juice.get_total_fat() * factor
+
+
 def calculate_nutrient_per_meal():
     # calculate nutrient from protein powder
     protein_powder_nutrient = calculate_protein_powder_nutrient()
@@ -355,10 +380,13 @@ def calculate_nutrient_per_meal():
     # calculate nutrient per meal after subtracting protein powder's
     subtract_protein_powder_nutrient_from_meals(protein_powder_nutrient)
 
+    # calculate nutrient per meal after subtracting orange juice's
+    subtract_orange_juice_nutrient_from_meals()
+
 
 def calculate_protein_powder_nutrient():
-    protein_powder = ingr.Ingredient(DATAFRAME[DATAFRAME.name == "protein powder"])
-    honey = ingr.Ingredient(DATAFRAME[DATAFRAME.name == "honey"])
+    protein_powder = get_ingredient_by_name("protein powder")
+    honey = get_ingredient_by_name("honey")
 
     pre_nutrient, post_nutrient = calculate_pre_and_post_workout_nutrient(protein_powder, honey)
 
@@ -369,39 +397,94 @@ def calculate_pre_and_post_workout_nutrient(protein_powder, honey):
     (p_portion, p_unit, p_carb, p_protein, p_fat) = protein_powder.get_portion_and_nutrient()
     (h_portion, h_unit, h_carb, h_protein, h_fat) = honey.get_portion_and_nutrient()
 
-    pre_nutrient = [e * PROTEIN_POWDER_SERVING / p_portion for e in [p_carb, p_protein, p_fat]]
-    honey_nutrient = [e * POST_WORKOUT_HONEY / h_portion for e in [h_carb, h_protein, h_fat]]
+    pre_nutrient = list(map(float, [e * PROTEIN_POWDER_SERVING / p_portion for e in [p_carb, p_protein, p_fat]]))
+    honey_nutrient = list(map(float, [e * POST_WORKOUT_HONEY / h_portion for e in [h_carb, h_protein, h_fat]]))
     post_nutrient = [sum(e) for e in zip(pre_nutrient, honey_nutrient)]
-
     return pre_nutrient, post_nutrient
 
 
-def calculate_protein_powder_nutrient_as_chosen(pre_nutrient, post_nutrient, protein_powder_choice):
-    if protein_powder_choice == 0:
+def calculate_protein_powder_nutrient_as_chosen(pre_nutrient, post_nutrient, _protein_powder_choice):
+    if _protein_powder_choice == 0:
         return [0, 0, 0]
-    elif protein_powder_choice == 1:
+    elif _protein_powder_choice == 1:
         return pre_nutrient
-    elif protein_powder_choice == 2:
+    elif _protein_powder_choice == 2:
         return post_nutrient
-    elif protein_powder_choice == 3:
+    elif _protein_powder_choice == 3:
         return [sum(x) for x in zip(pre_nutrient, post_nutrient)]
 
     return [0, 0, 0]
 
 
 def subtract_protein_powder_nutrient_from_meals(protein_powder_nutrient):
-    global carb_per_meal, protein_per_meal, fat_pre_meal
+    global carb_per_meal, fat_per_meal, protein_per_meal
     carb_per_meal = (daily_carb - protein_powder_nutrient[0]) / 3
-    protein_per_meal = (daily_carb - protein_powder_nutrient[1]) / 3
-    fat_pre_meal = (daily_carb - protein_powder_nutrient[2]) / 3
+    protein_per_meal = (daily_protein - protein_powder_nutrient[1]) / 3
+    fat_per_meal = (daily_fat - protein_powder_nutrient[2]) / 3
 
 
 def create_breakfast():
     pass
 
 
+def pick_ingredients_for_meal():
+    selected_protein_ingredient = get_ingredient_by_name(supported_protein_names[random.choice(available_ingredients)])
+    selected_staple_ingredient = get_ingredient_by_name(random.choice(supported_staple_names))
+    selected_nut_ingredient = get_ingredient_by_name(random.choice(supported_nut_names))
+    selected_sweetener_ingredient = get_ingredient_by_name(random.choice(supported_sweetener_names))
+    return [selected_protein_ingredient, selected_staple_ingredient, selected_nut_ingredient,
+            selected_sweetener_ingredient]
+
+
+def create_meal_wo_sweetener(ingredients_list):
+    vector_a = np.array(
+        [[ingredients_list[0].get_carb(), ingredients_list[1].get_carb(), ingredients_list[2].get_carb()],
+         [ingredients_list[0].get_protein(), ingredients_list[1].get_protein(), ingredients_list[2].get_protein()],
+         [ingredients_list[0].get_total_fat(), ingredients_list[1].get_total_fat(), ingredients_list[2].get_total_fat()]
+         ])
+    vector_b = np.array([carb_per_meal, protein_per_meal, fat_per_meal])
+    return np.linalg.solve(vector_a, vector_b)
+
+
+def create_meal_with_sweetener(ingredients_list, tentative_meal):
+    sweetener_portion = (ingredients_list[1].get_standard_portion() * tentative_meal[1] - STAPLE_FOOD_UPPER_L) * 5 / 4
+    if sweetener_portion > SWEETENER_PER_MEAL_UPPER_L:
+        sweetener_portion = SWEETENER_PER_MEAL_UPPER_L
+    sweetener_factor = sweetener_portion / ingredients_list[3].get_standard_portion()
+    vector_a = np.array(
+        [[ingredients_list[0].get_carb(), ingredients_list[1].get_carb(), ingredients_list[2].get_carb()],
+         [ingredients_list[0].get_protein(), ingredients_list[1].get_protein(), ingredients_list[2].get_protein()],
+         [ingredients_list[0].get_total_fat(), ingredients_list[1].get_total_fat(),
+          ingredients_list[2].get_total_fat()]])
+    vector_b = np.array([carb_per_meal - ingredients_list[3].get_carb() * sweetener_factor,
+                         protein_per_meal - ingredients_list[3].get_protein() * sweetener_factor,
+                         fat_per_meal - ingredients_list[3].get_total_fat() * sweetener_factor])
+    return np.append(np.linalg.solve(vector_a, vector_b), sweetener_factor)
+
+
+def adjust_meal_proportion(ingredients_list, tentative_meal):
+    if ingredients_list[1].get_standard_portion() * tentative_meal[1] > STAPLE_FOOD_UPPER_L:
+        return create_meal_with_sweetener(ingredients_list, tentative_meal)
+    else:
+        return tentative_meal
+
+
+def ingredients_portion_to_menu(ingredients_list, adjusted_meal):
+    menu = {}
+    for i in range(len(adjusted_meal)):
+        menu[str(ingredients_list[i].get_name())] = str(
+            adjusted_meal[i] * ingredients_list[i].get_standard_portion()) + str(ingredients_list[i].get_unit())
+    if juice_needed == 1:
+        menu['orange juice'] = str(CUP_VOLUME) + "ml"
+    return menu
+
+
 def create_lunch_and_supper():
-    pass
+    ingredients_list = pick_ingredients_for_meal()
+    tentative_meal = create_meal_wo_sweetener(ingredients_list)
+    adjusted_meal = adjust_meal_proportion(ingredients_list, tentative_meal)
+    global meal_menu
+    meal_menu = ingredients_portion_to_menu(ingredients_list, adjusted_meal)
 
 
 def meal_to_file():
