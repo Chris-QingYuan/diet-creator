@@ -51,6 +51,8 @@ supported_nut_names = list(DATAFRAME[DATAFRAME.category == 4].name)
 supported_nut_num = len(supported_nut_names)
 supported_vegetable_names = list(DATAFRAME[DATAFRAME.category == 5].name)
 supported_vegetable_num = len(supported_vegetable_names)
+supported_breakfast_names = list(DATAFRAME[DATAFRAME.breakfast == 1].name)
+supported_breakfast_num = len(supported_breakfast_names)
 protein_powder_choice = -1
 juice_needed = -1
 carb_per_meal = 0  # g
@@ -423,8 +425,155 @@ def subtract_protein_powder_nutrient_from_meals(protein_powder_nutrient):
     fat_per_meal = (daily_fat - protein_powder_nutrient[2]) / 3
 
 
+def display_breakfast_ingresients():
+    print("here are the ingredients supported for breakfast as of now:")
+    for i in range(supported_breakfast_num):
+        print(str(i) + "\t" + supported_breakfast_names[i])
+    print("please enter the index of the ingredients you want to use, separate in comma:", end="")
+
+
+def get_breakfast_choice():
+    breakfast_choice = input()
+    # validate, if fail then recurse
+    try:
+        breakfast_choice_list = list(map(int, breakfast_choice.split(",")))
+    except ValueError:
+        print("value error, please enter again:")
+        breakfast_choice_list = get_breakfast_choice()
+
+    for v in breakfast_choice_list:
+        if v >= supported_breakfast_num:
+            print("input number too large, out of bounce, please try again:")
+            breakfast_choice_list = get_breakfast_choice()
+    return breakfast_choice_list
+
+
+def collect_breakfast_ingredients():
+    display_breakfast_ingresients()
+
+    return get_breakfast_choice()
+
+
+def collect_integer_ingredient_nums(breakfast_ingredients_list):
+    tentative_menu = {}
+    for index in breakfast_ingredients_list:
+        if get_ingredient_by_name(supported_breakfast_names[index]).get_unit() == "1":
+            portion_of_ingredient = input("how many " + supported_breakfast_names[index] + "(s) do you want?")
+            try:
+                tentative_menu[supported_breakfast_names[index]] = int(portion_of_ingredient)
+            except ValueError:
+                tentative_menu[supported_breakfast_names[index]] = int(input("please enter an integer!"))
+    return tentative_menu
+
+
+def menu_to_cpf(menu):
+    carb_included, protein_included, fat_included = 0, 0, 0
+    for k, v in menu:
+        ingredient = get_ingredient_by_name(k)
+        carb_included += ingredient.get_carb() * v
+        protein_included += ingredient.get_protein() * v
+        fat_included += ingredient.get_total_fat() * v
+    return carb_included, protein_included, fat_included
+
+
+def verify_undone_menu(menu_to_complete, breakfast_ingredients_list):
+    carb_included, protein_included, fat_included = menu_to_cpf(menu_to_complete)
+    if carb_included > carb_per_meal or protein_included > protein_per_meal or fat_included > fat_per_meal:
+        print("the present choice combination contains too much nutrient, please adjust the numbers")
+        return verify_undone_menu(collect_integer_ingredient_nums(breakfast_ingredients_list),
+                                  breakfast_ingredients_list)
+    else:
+        return menu_to_complete
+
+
+def subtract_indivisible_nutrient_from_breakfast(menu_to_complete):
+    carb_included, protein_included, fat_included = menu_to_cpf(menu_to_complete)
+    return carb_per_meal - carb_included, protein_per_meal - protein_included, fat_per_meal - fat_included
+
+
+def extract_noninteger_ingredients(breakfast_ingredients_list):
+    noninteger_ingredient_list = []
+    for index in breakfast_ingredients_list:
+        if get_ingredient_by_name(supported_breakfast_names[index]).get_unit() != "1":
+            noninteger_ingredient_list.append(get_ingredient_by_name(supported_breakfast_names[index]))
+    return noninteger_ingredient_list
+
+
+def calculate_second_piece_of_menu(noninteger_ingredient_list, compliment_carb, compliment_protein, compliment_fat):
+    length = len(noninteger_ingredient_list)
+    if length == 1:
+        # calculate carbs only
+        return {noninteger_ingredient_list[0].get_name(): compliment_carb / noninteger_ingredient_list[0].get_carb()}
+    elif length == 2:
+        # calculate carbs and protein
+        vector_a = np.array(
+            [[noninteger_ingredient_list[0].get_carb(), noninteger_ingredient_list[1].get_carb()],
+             [noninteger_ingredient_list[0].get_protein(), noninteger_ingredient_list[1].get_protein()]
+             ])
+        vector_b = np.array([compliment_carb, compliment_protein])
+        portions = np.linalg.solve(vector_a, vector_b)
+        return {noninteger_ingredient_list[0].get_name(): portions[0],
+                noninteger_ingredient_list[1].get_name(): portions[1]}
+    elif length == 3:
+        # calculate c,p and f
+        vector_a = np.array(
+            [[noninteger_ingredient_list[0].get_carb(), noninteger_ingredient_list[1].get_carb(),
+              noninteger_ingredient_list[2].get_carb()],
+             [noninteger_ingredient_list[0].get_protein(), noninteger_ingredient_list[1].get_protein(),
+              noninteger_ingredient_list[2].get_protein()],
+             [noninteger_ingredient_list[0].get_total_fat(), noninteger_ingredient_list[1].get_total_fat(),
+              noninteger_ingredient_list[2].get_total_fat()]
+             ])
+        vector_b = np.array([compliment_carb, compliment_protein, compliment_fat])
+        portions = np.linalg.solve(vector_a, vector_b)
+        return {noninteger_ingredient_list[0].get_name(): portions[0],
+                noninteger_ingredient_list[1].get_name(): portions[1],
+                noninteger_ingredient_list[2].get_name(): portions[2]}
+    elif length >= 4:
+        # pick 4 ingredient, then calculate c,p,f and fibre
+        ingredient_list_of_four = random.choices(noninteger_ingredient_list, k=4)
+        vector_a = np.array(
+            [[ingredient_list_of_four[0].get_carb(), ingredient_list_of_four[1].get_carb(),
+              ingredient_list_of_four[2].get_carb(), ingredient_list_of_four[3].get_carb()],
+             [ingredient_list_of_four[0].get_protein(), ingredient_list_of_four[1].get_protein(),
+              ingredient_list_of_four[2].get_protein(), ingredient_list_of_four[3].get_protein()],
+             [ingredient_list_of_four[0].get_total_fat(), ingredient_list_of_four[1].get_total_fat(),
+              ingredient_list_of_four[2].get_total_fat(), ingredient_list_of_four[3].get_total_fat()],
+             [ingredient_list_of_four[0].get_fibre(), ingredient_list_of_four[1].get_fibre(),
+              ingredient_list_of_four[2].get_fibre(), ingredient_list_of_four[3].get_fibre()]
+             ])
+        vector_b = np.array([compliment_carb, compliment_protein, compliment_fat, DAILY_FIBRE / 3])
+        portions = np.linalg.solve(vector_a, vector_b)
+        return {ingredient_list_of_four[0].get_name(): portions[0],
+                ingredient_list_of_four[1].get_name(): portions[1],
+                ingredient_list_of_four[2].get_name(): portions[2],
+                ingredient_list_of_four[3].get_name(): portions[3]}
+    else:
+        return {}
+
+
+def complete_breakfast_menu(menu_to_complete, breakfast_ingredients_list):
+    compliment_carb, compliment_protein, compliment_fat = subtract_indivisible_nutrient_from_breakfast(menu_to_complete)
+    noninteger_ingredient_list = extract_noninteger_ingredients(breakfast_ingredients_list)
+    second_piece_of_menu = calculate_second_piece_of_menu(noninteger_ingredient_list, compliment_carb,
+                                                          compliment_protein, compliment_fat)
+    menu_to_complete.update(second_piece_of_menu)
+    global breakfast_menu
+    breakfast_menu = menu_to_complete
+
+
 def create_breakfast():
-    pass
+    # collect information of ingredients the user wants
+    breakfast_ingredients_list = collect_breakfast_ingredients()
+
+    # collect indivisible ingredient numbers
+    menu_to_complete = collect_integer_ingredient_nums(breakfast_ingredients_list)
+
+    # verify if the menu is possible
+    menu_to_complete = verify_undone_menu(menu_to_complete, breakfast_ingredients_list)
+
+    # complete the menu
+    complete_breakfast_menu(menu_to_complete, breakfast_ingredients_list)
 
 
 def pick_ingredients_for_meal():
