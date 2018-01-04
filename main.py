@@ -4,6 +4,7 @@ import Ingredient as ingr
 import utilities as util
 import random
 import numpy as np
+from datetime import datetime as dt
 
 # read in data from data.csv into a dataframe
 DATAFRAME = pd.read_csv("data/data.csv")
@@ -321,6 +322,10 @@ def collect_special_req():
 
 
 def collect_protein_powder_req():
+    """
+
+    :return:
+    """
     print("please choose the volume of protein powder you want")
     for k, v in PROTEIN_POWDER_CHOICE.items():
         print(str(k) + "\t" + v)
@@ -468,7 +473,7 @@ def collect_integer_ingredient_nums(breakfast_ingredients_list):
 
 def menu_to_cpf(menu):
     carb_included, protein_included, fat_included = 0, 0, 0
-    for k, v in menu:
+    for k, v in menu.items():
         ingredient = get_ingredient_by_name(k)
         carb_included += ingredient.get_carb() * v
         protein_included += ingredient.get_protein() * v
@@ -558,6 +563,9 @@ def complete_breakfast_menu(menu_to_complete, breakfast_ingredients_list):
     second_piece_of_menu = calculate_second_piece_of_menu(noninteger_ingredient_list, compliment_carb,
                                                           compliment_protein, compliment_fat)
     menu_to_complete.update(second_piece_of_menu)
+    for k, v in menu_to_complete.items():
+        menu_to_complete[k] = str(get_ingredient_by_name(k).get_standard_portion() * v) + " [" + get_ingredient_by_name(
+            k).get_unit() + "]"
     global breakfast_menu
     breakfast_menu = menu_to_complete
 
@@ -636,12 +644,20 @@ def create_lunch_and_supper():
     meal_menu = ingredients_portion_to_menu(ingredients_list, adjusted_meal)
 
 
+def generate_menu_filename():
+    return dt.now().strftime("%Y-%m-%d %H:%M:%S") + " menu.txt"
+
+
 def meal_to_file():
     """
     write the created meals to a xls file for later check and use
     """
-    # TODO
-    pass
+    menu_filename = generate_menu_filename()
+    menu_file = open(menu_filename, "w")
+    menu_file.write("breakfast : \n")
+    menu_file.write(breakfast_menu.__str__())
+    menu_file.write("meals : \n")
+    menu_file.write(meal_menu.__str__())
 
 
 # run the project
