@@ -645,7 +645,7 @@ def create_lunch_and_supper():
 
 
 def generate_menu_filename():
-    return dt.now().strftime("%Y-%m-%d %H:%M:%S") + " menu.txt"
+    return dt.now().strftime("%Y %m %d %H:%M:%S") + " menu.txt"
 
 
 def meal_to_file():
